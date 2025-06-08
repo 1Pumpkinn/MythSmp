@@ -2,7 +2,7 @@ name: MythAbilities
 version: 1.0.0
 main: net.tyrone.MythAbilities
 api-version: 1.21
-author: YourName
+author: ___Pumpkinn
 description: A powerful mythological abilities plugin for Minecraft
 
 commands:

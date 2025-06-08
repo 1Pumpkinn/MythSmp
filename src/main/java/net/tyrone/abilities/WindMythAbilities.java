@@ -102,7 +102,7 @@ public class WindMythAbilities {
 
         // Effects
         player.getWorld().playSound(loc, Sound.ENTITY_GENERIC_EXPLODE, 2.0f, 0.5f);
-        player.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, loc, 5, 2, 1, 2, 0);
+        player.getWorld().spawnParticle(Particle.EXPLOSION, loc, 5, 2, 1, 2, 0);
         player.getWorld().spawnParticle(Particle.CLOUD, loc, 50, 3, 1, 3, 0.2);
 
         // Damage and knockback nearby players

@@ -2,6 +2,7 @@ package net.tyrone;
 
 
 import net.tyrone.commands.MythCommand;
+import net.tyrone.listeners.AbilityItemListener;
 import net.tyrone.listeners.PlayerListener;
 import net.tyrone.managers.MythManager;
 import net.tyrone.utils.CooldownManager;
@@ -25,10 +26,12 @@ public class MythAbilities extends JavaPlugin {
         mythManager = new MythManager(this);
 
         // Register commands
-        getCommand("myth").setExecutor(new MythCommand(this));
+        MythCommand mythCommand = new MythCommand(this);
+        getCommand("myth").setExecutor(mythCommand);
 
         // Register listeners
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
+        getServer().getPluginManager().registerEvents(new AbilityItemListener(this, mythCommand), this);
 
         getLogger().info("MythAbilities plugin has been enabled!");
     }

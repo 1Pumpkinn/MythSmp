@@ -4,10 +4,15 @@ import net.tyrone.MythAbilities;
 import net.tyrone.abilities.*;
 import net.tyrone.enums.MythType;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+
+import java.util.Arrays;
 
 public class MythCommand implements CommandExecutor {
 
@@ -54,12 +59,8 @@ public class MythCommand implements CommandExecutor {
                 return handleTrustCommand(player, args);
             case "untrust":
                 return handleUntrustCommand(player, args);
-            case "ability1":
-            case "a1":
-                return handleAbility1(player);
-            case "ability2":
-            case "a2":
-                return handleAbility2(player);
+            case "give":
+                return handleGiveCommand(player);
             case "help":
                 sendHelpMessage(player);
                 return true;
@@ -102,6 +103,7 @@ public class MythCommand implements CommandExecutor {
 
         plugin.getMythManager().setPlayerMyth(player, mythType);
         player.sendMessage("§aYou have been granted the power of " + mythType.getDisplayName() + "!");
+        player.sendMessage("§eUse /myth give to receive your ability items!");
         return true;
     }
 
@@ -127,24 +129,24 @@ public class MythCommand implements CommandExecutor {
 
         switch (mythType) {
             case WIND:
-                player.sendMessage("§bAbility 1: Air Dash - Dash 10 blocks in the air (30s cooldown)");
-                player.sendMessage("§bAbility 2: Ground Smash - Dash up and smash down dealing 4 hearts (3m cooldown)");
+                player.sendMessage("§bLeft Click: Air Dash - Dash 10 blocks in the air (30s cooldown)");
+                player.sendMessage("§bRight Click: Ground Smash - Dash up and smash down dealing 4 hearts (3m cooldown)");
                 break;
             case LIGHTNING:
-                player.sendMessage("§eLightning Storm: Strike nearby enemies with lightning for 20s (3m cooldown)");
-                player.sendMessage("§eAbility 2: Lightning Strike Chance - 50% chance to strike enemies for 45s (5m cooldown)");
+                player.sendMessage("§eLeft Click: Lightning Storm - Strike nearby enemies with lightning for 20s (3m cooldown)");
+                player.sendMessage("§eRight Click: Lightning Strike Chance - 50% chance to strike enemies for 45s (5m cooldown)");
                 break;
             case FIRE:
-                player.sendMessage("§cAbility 1: Fire Shot - Shoot fire dealing 2 hearts and ignite (3m cooldown)");
-                player.sendMessage("§cAbility 2: Fire Rain - Rain fire in 10 block radius for 30s (4m cooldown)");
+                player.sendMessage("§cLeft Click: Fire Shot - Shoot fire dealing 2 hearts and ignite (3m cooldown)");
+                player.sendMessage("§cRight Click: Fire Rain - Rain fire in 10 block radius for 30s (4m cooldown)");
                 break;
             case EARTH:
-                player.sendMessage("§6Ability 1: Rock Throw - Throw a rock dealing 2 hearts (1m 30s cooldown)");
-                player.sendMessage("§6Ability 2: Poison Aura - Poison enemies in 5 block radius for 30s (3m cooldown)");
+                player.sendMessage("§6Left Click: Rock Throw - Throw a rock dealing 2 hearts (1m 30s cooldown)");
+                player.sendMessage("§6Right Click: Poison Aura - Poison enemies in 5 block radius for 30s (3m cooldown)");
                 break;
             case RICHES:
-                player.sendMessage("§dAbility 1: Iron Golem - Summon a protective golem for 1m (3m cooldown)");
-                player.sendMessage("§dAbility 2: Cheap Trades - All trades cost 1 emerald for 1m (5m cooldown)");
+                player.sendMessage("§dLeft Click: Iron Golem - Summon a protective golem for 1m (3m cooldown)");
+                player.sendMessage("§dRight Click: Cheap Trades - All trades cost 1 emerald for 1m (5m cooldown)");
                 break;
         }
         return true;
@@ -191,10 +193,92 @@ public class MythCommand implements CommandExecutor {
         return true;
     }
 
-    private boolean handleAbility1(Player player) {
+    private boolean handleGiveCommand(Player player) {
         if (!plugin.getMythManager().hasMyth(player)) {
             player.sendMessage("§cYou don't have any myth abilities!");
             return true;
+        }
+
+        MythType mythType = plugin.getMythManager().getPlayerMyth(player);
+        ItemStack abilityItem = createAbilityItem(mythType);
+
+        player.getInventory().addItem(abilityItem);
+        player.sendMessage("§aYou have received your " + mythType.getDisplayName() + " ability item!");
+        player.sendMessage("§eLeft click to use ability 1, right click to use ability 2!");
+
+        return true;
+    }
+
+    private ItemStack createAbilityItem(MythType mythType) {
+        ItemStack item = null;
+        String displayName = "";
+        String[] lore = null;
+
+        switch (mythType) {
+            case WIND:
+                item = new ItemStack(Material.FEATHER);
+                displayName = "§bWind Powers";
+                lore = new String[]{
+                        "§7Left Click: §bAir Dash",
+                        "§7Right Click: §bGround Smash",
+                        "",
+                        "§eClick to use your wind abilities!"
+                };
+                break;
+            case LIGHTNING:
+                item = new ItemStack(Material.BLAZE_ROD);
+                displayName = "§eLightning Staff";
+                lore = new String[]{
+                        "§7Left Click: §eLightning Storm",
+                        "§7Right Click: §eLightning Strike Chance",
+                        "",
+                        "§eClick to use your lightning abilities!"
+                };
+                break;
+            case FIRE:
+                item = new ItemStack(Material.BLAZE_POWDER);
+                displayName = "§cFire Essence";
+                lore = new String[]{
+                        "§7Left Click: §cFire Shot",
+                        "§7Right Click: §cFire Rain",
+                        "",
+                        "§eClick to use your fire abilities!"
+                };
+                break;
+            case EARTH:
+                item = new ItemStack(Material.COBBLESTONE);
+                displayName = "§6Earth Stone";
+                lore = new String[]{
+                        "§7Left Click: §6Rock Throw",
+                        "§7Right Click: §6Poison Aura",
+                        "",
+                        "§eClick to use your earth abilities!"
+                };
+                break;
+            case RICHES:
+                item = new ItemStack(Material.GOLD_INGOT);
+                displayName = "§dGolden Scepter";
+                lore = new String[]{
+                        "§7Left Click: §dSummon Iron Golem",
+                        "§7Right Click: §dCheap Trades",
+                        "",
+                        "§eClick to use your riches abilities!"
+                };
+                break;
+        }
+
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName(displayName);
+        meta.setLore(Arrays.asList(lore));
+        item.setItemMeta(meta);
+
+        return item;
+    }
+
+    // Ability execution methods for use by the item listener
+    public void executeAbility1(Player player) {
+        if (!plugin.getMythManager().hasMyth(player)) {
+            return;
         }
 
         MythType mythType = plugin.getMythManager().getPlayerMyth(player);
@@ -216,13 +300,11 @@ public class MythCommand implements CommandExecutor {
                 richesAbilities.summonIronGolem(player);
                 break;
         }
-        return true;
     }
 
-    private boolean handleAbility2(Player player) {
+    public void executeAbility2(Player player) {
         if (!plugin.getMythManager().hasMyth(player)) {
-            player.sendMessage("§cYou don't have any myth abilities!");
-            return true;
+            return;
         }
 
         MythType mythType = plugin.getMythManager().getPlayerMyth(player);
@@ -244,7 +326,6 @@ public class MythCommand implements CommandExecutor {
                 richesAbilities.cheapTrades(player);
                 break;
         }
-        return true;
     }
 
     private void sendHelpMessage(Player player) {
@@ -252,10 +333,10 @@ public class MythCommand implements CommandExecutor {
         player.sendMessage("§b/myth set <type> §7- Set your myth type");
         player.sendMessage("§b/myth remove §7- Remove your myth abilities");
         player.sendMessage("§b/myth info §7- View your myth abilities info");
+        player.sendMessage("§b/myth give §7- Get your ability items");
         player.sendMessage("§b/myth trust <player> §7- Trust a player (abilities won't affect them)");
         player.sendMessage("§b/myth untrust <player> §7- Untrust a player");
-        player.sendMessage("§b/myth ability1 (or a1) §7- Use first ability");
-        player.sendMessage("§b/myth ability2 (or a2) §7- Use second ability");
         player.sendMessage("§7Available myth types: wind, lightning, fire, earth, riches");
+        player.sendMessage("§7Use your ability items: Left click for ability 1, right click for ability 2");
     }
 }
