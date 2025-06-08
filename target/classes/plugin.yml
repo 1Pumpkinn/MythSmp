@@ -1,0 +1,20 @@
+name: MythAbilities
+version: 1.0.0
+main: net.tyrone.MythAbilities
+api-version: 1.21
+author: YourName
+description: A powerful mythological abilities plugin for Minecraft
+
+commands:
+  myth:
+    description: Main command for myth abilities
+    usage: /myth <subcommand>
+    aliases: [myths, mythability]
+
+permissions:
+  mythabilities.use:
+    description: Allows use of myth abilities
+    default: true
+  mythabilities.admin:
+    description: Allows administrative functions
+    default: op
