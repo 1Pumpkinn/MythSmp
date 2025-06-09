@@ -13,20 +13,16 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
-import org.bukkit.util.RayTraceResult;
-import org.bukkit.util.Vector;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.UUID;
 
 public class FireMythAbilities implements Listener {
 
-    private final net.tyrone.MythAbilities plugin;
+    private final MythAbilities plugin;
     private final Map<UUID, BukkitTask> fireRainTasks = new HashMap<>();
-    private final Map<UUID, Fireball> mythFireballs = new HashMap<>();
-    private final Random random = new Random();
+    private final Map<Fireball, Player> fireballOwners = new HashMap<>();
 
     public FireMythAbilities(MythAbilities plugin) {
         this.plugin = plugin;
@@ -44,24 +40,11 @@ public class FireMythAbilities implements Listener {
         // Set cooldown (3 minutes)
         plugin.getCooldownManager().setCooldown(player, "fire_shot", 180);
 
-        // Shoot fireball
+        // Launch fireball
         Fireball fireball = player.launchProjectile(Fireball.class);
-        fireball.setIsIncendiary(false); // Don't set blocks on fire
-        fireball.setYield(0); // No explosion damage to blocks
-        mythFireballs.put(player.getUniqueId(), fireball);
+        fireball.setYield(0); // No block damage
+        fireballOwners.put(fireball, player);
 
-        // Remove after 5 seconds if it hasn't hit anything
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (mythFireballs.containsValue(fireball)) {
-                    fireball.remove();
-                    mythFireballs.remove(player.getUniqueId());
-                }
-            }
-        }.runTaskLater(plugin, 100); // 5 seconds
-
-        player.sendMessage("§cYou shoot a concentrated fire blast!");
     }
 
     public void fireRain(Player player) {
@@ -89,36 +72,37 @@ public class FireMythAbilities implements Listener {
                 if (ticks >= 600) { // 30 seconds
                     this.cancel();
                     fireRainTasks.remove(player.getUniqueId());
-                    player.sendMessage("§eThe fire rain stops falling...");
+                    player.sendMessage("§eYour fire rain has stopped");
                     return;
                 }
 
-                // Rain fire every second
+                // Rain fire every second in 10 block radius
                 if (ticks % 20 == 0) {
                     Location center = player.getLocation();
 
-                    // Create multiple fire drops in 10 block radius
+                    // Create multiple fire spots
                     for (int i = 0; i < 5; i++) {
-                        double x = center.getX() + (random.nextDouble() - 0.5) * 20;
-                        double z = center.getZ() + (random.nextDouble() - 0.5) * 20;
-                        double y = center.getY() + 15;
+                        double x = center.getX() + (Math.random() - 0.5) * 20; // 10 block radius
+                        double z = center.getZ() + (Math.random() - 0.5) * 20;
+                        double y = center.getY() + 15; // Start high
 
-                        Location dropLocation = new Location(center.getWorld(), x, y, z);
+                        Location fireLocation = new Location(center.getWorld(), x, y, z);
 
-                        // Create fire effect
-                        dropLocation.getWorld().spawnParticle(Particle.FLAME, dropLocation, 10, 0.5, 2, 0.5, 0.1);
-                        dropLocation.getWorld().playSound(dropLocation, Sound.BLOCK_FIRE_AMBIENT, 0.5f, 1.0f);
+                        // Find ground level
+                        while (fireLocation.getY() > 0 && fireLocation.getBlock().getType() == Material.AIR) {
+                            fireLocation.subtract(0, 1, 0);
+                        }
+                        fireLocation.add(0, 1, 0); // One block above ground
 
-                        // Check for players in the area
-                        Collection<Entity> nearbyEntities = dropLocation.getWorld().getNearbyEntities(dropLocation, 2, 20, 2);
-                        for (Entity entity : nearbyEntities) {
+
+                        // Damage nearby players
+                        Collection<Entity> nearby = fireLocation.getWorld().getNearbyEntities(fireLocation, 2, 2, 2);
+                        for (Entity entity : nearby) {
                             if (entity instanceof Player && !entity.equals(player)) {
                                 Player target = (Player) entity;
                                 if (!plugin.getTrustManager().isTrusted(player, target)) {
-                                    // Deal 3 hearts (6 damage) and set on fire
-                                    target.damage(6.0, player);
-                                    target.setFireTicks(60); // 3 seconds on fire
-                                    target.sendMessage("§c" + player.getName() + "'s fire rain burns you!");
+                                    target.damage(3.0, player); // 1.5 hearts
+                                    target.setFireTicks(60); // 3 seconds of fire
                                 }
                             }
                         }
@@ -130,39 +114,34 @@ public class FireMythAbilities implements Listener {
         }.runTaskTimer(plugin, 0, 1);
 
         fireRainTasks.put(player.getUniqueId(), rainTask);
-        player.sendMessage("§cYou summon a devastating fire rain!");
     }
 
     @EventHandler
     public void onFireballHit(ProjectileHitEvent event) {
         if (!(event.getEntity() instanceof Fireball)) return;
-        if (!(event.getEntity().getShooter() instanceof Player)) return;
 
         Fireball fireball = (Fireball) event.getEntity();
-        Player shooter = (Player) fireball.getShooter();
+        Player owner = fireballOwners.get(fireball);
 
-        // Check if this is a myth fireball
-        if (!mythFireballs.containsValue(fireball)) return;
-
-        // Remove from tracking
-        mythFireballs.entrySet().removeIf(entry -> entry.getValue().equals(fireball));
+        if (owner == null) return;
 
         Location hitLocation = fireball.getLocation();
 
-        // Check if it hit a player
-        if (event.getHitEntity() instanceof Player) {
-            Player target = (Player) event.getHitEntity();
-            if (!plugin.getTrustManager().isTrusted(shooter, target)) {
-                // Deal 2 hearts (4 damage) and set on fire
-                target.damage(4.0, shooter);
-                target.setFireTicks(100); // 5 seconds on fire
-                target.sendMessage("§c" + shooter.getName() + "'s fire blast burns you!");
-                shooter.sendMessage("§cYour fire blast hits " + target.getName() + "!");
+        // Damage nearby players
+        Collection<Entity> nearby = hitLocation.getWorld().getNearbyEntities(hitLocation, 3, 3, 3);
+        for (Entity entity : nearby) {
+            if (entity instanceof Player && !entity.equals(owner)) {
+                Player target = (Player) entity;
+                if (!plugin.getTrustManager().isTrusted(owner, target)) {
+                    target.damage(4.0, owner); // 2 hearts
+                    target.setFireTicks(100); // 5 seconds of fire
+                }
             }
         }
 
-        // Create explosion effect
-        hitLocation.getWorld().spawnParticle(Particle.FLAME, hitLocation, 20, 2, 2, 2, 0.2);
-        hitLocation.getWorld().playSound(hitLocation, Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 1.5f);
+        // Effects
+        hitLocation.getWorld().spawnParticle(Particle.EXPLOSION, hitLocation, 10, 2, 2, 2, 0.1);
+
+        fireballOwners.remove(fireball);
     }
 }

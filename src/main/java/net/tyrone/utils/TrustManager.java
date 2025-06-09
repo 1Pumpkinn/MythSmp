@@ -18,12 +18,12 @@ public class TrustManager {
         trustedPlayers.computeIfAbsent(trustorUUID, k -> new HashSet<>()).add(trustedUUID);
     }
 
-    public void untrustPlayer(Player trustor, Player untrusted) {
+    public void untrustPlayer(Player trustor, Player trusted) {
         UUID trustorUUID = trustor.getUniqueId();
-        UUID untrustedUUID = untrusted.getUniqueId();
+        UUID trustedUUID = trusted.getUniqueId();
 
         if (trustedPlayers.containsKey(trustorUUID)) {
-            trustedPlayers.get(trustorUUID).remove(untrustedUUID);
+            trustedPlayers.get(trustorUUID).remove(trustedUUID);
         }
     }
 
@@ -31,20 +31,18 @@ public class TrustManager {
         UUID trustorUUID = trustor.getUniqueId();
         UUID targetUUID = target.getUniqueId();
 
-        // Players trust themselves
-        if (trustorUUID.equals(targetUUID)) {
-            return true;
+        if (!trustedPlayers.containsKey(trustorUUID)) {
+            return false;
         }
 
-        return trustedPlayers.containsKey(trustorUUID) &&
-                trustedPlayers.get(trustorUUID).contains(targetUUID);
-    }
-
-    public Set<UUID> getTrustedPlayers(Player player) {
-        return trustedPlayers.getOrDefault(player.getUniqueId(), new HashSet<>());
+        return trustedPlayers.get(trustorUUID).contains(targetUUID);
     }
 
     public void clearTrustedPlayers(Player player) {
         trustedPlayers.remove(player.getUniqueId());
+    }
+
+    public Set<UUID> getTrustedPlayers(Player player) {
+        return trustedPlayers.getOrDefault(player.getUniqueId(), new HashSet<>());
     }
 }

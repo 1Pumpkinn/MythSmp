@@ -53,10 +53,8 @@ public class WindMythAbilities {
         }.runTaskLater(plugin, 60); // 3 seconds
 
         // Effects
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_FLAP, 1.0f, 1.5f);
         player.getWorld().spawnParticle(Particle.CLOUD, player.getLocation(), 30, 1, 1, 1, 0.1);
 
-        player.sendMessage("§aYou dash through the air with the power of wind!");
     }
 
     public void groundSmash(Player player) {
@@ -94,7 +92,6 @@ public class WindMythAbilities {
             }
         }.runTaskLater(plugin, 30); // 1.5 seconds
 
-        player.sendMessage("§aYou prepare for a devastating ground smash!");
     }
 
     private void performGroundSmash(Player player) {
@@ -121,11 +118,9 @@ public class WindMythAbilities {
                     knockback.multiply(2);
                     target.setVelocity(knockback);
 
-                    target.sendMessage("§c" + player.getName() + " smashed the ground with wind power!");
                 }
             }
         }
 
-        player.sendMessage("§aYou smash into the ground with tremendous force!");
     }
 }

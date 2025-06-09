@@ -12,6 +12,7 @@ import org.bukkit.entity.Villager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityTargetEvent;
+import org.bukkit.event.entity.VillagerAcquireTradeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;
@@ -65,6 +66,11 @@ public class RichesMythAbilities implements Listener {
         golem.setCustomName("§6" + player.getName() + "'s Guardian");
         golem.setCustomNameVisible(true);
 
+        // Make the golem more aggressive and stronger
+        golem.setPlayerCreated(false); // This makes it hostile to non-trusted players
+        golem.setMaxHealth(200.0); // Increase health
+        golem.setHealth(200.0);
+
         summonedGolems.put(player.getUniqueId(), golem);
 
         // Make golem target non-trusted players
@@ -76,7 +82,7 @@ public class RichesMythAbilities implements Listener {
                 if (ticks >= 1200 || golem.isDead()) { // 1 minute or golem is dead
                     if (!golem.isDead()) {
                         golem.remove();
-                        player.sendMessage("§eYour iron golem disappears...");
+                        player.sendMessage("§eYour iron golem disappears");
                     }
                     summonedGolems.remove(player.getUniqueId());
                     golemTasks.remove(player.getUniqueId());
@@ -87,9 +93,9 @@ public class RichesMythAbilities implements Listener {
                 // Find nearest non-trusted player every 2 seconds
                 if (ticks % 40 == 0) {
                     Player nearestEnemy = null;
-                    double nearestDistance = 10.0; // 10 block range
+                    double nearestDistance = 15.0; // Increased range to 15 blocks
 
-                    Collection<Entity> nearbyEntities = golem.getNearbyEntities(10, 10, 10);
+                    Collection<Entity> nearbyEntities = golem.getNearbyEntities(15, 15, 15);
                     for (Entity entity : nearbyEntities) {
                         if (entity instanceof Player && !entity.equals(player)) {
                             Player target = (Player) entity;
@@ -105,6 +111,8 @@ public class RichesMythAbilities implements Listener {
 
                     if (nearestEnemy != null) {
                         golem.setTarget(nearestEnemy);
+                        // Add aggressive behavior
+                        golem.setAggressive(true);
                     }
                 }
 
@@ -118,7 +126,6 @@ public class RichesMythAbilities implements Listener {
         spawnLoc.getWorld().spawnParticle(Particle.CLOUD, spawnLoc, 30, 2, 2, 2, 0.1);
         spawnLoc.getWorld().playSound(spawnLoc, Sound.BLOCK_ANVIL_PLACE, 1.0f, 0.8f);
 
-        player.sendMessage("§6You summon a powerful iron golem to protect you!");
     }
 
     public void cheapTrades(Player player) {
@@ -145,20 +152,7 @@ public class RichesMythAbilities implements Listener {
         for (Entity entity : nearbyEntities) {
             if (entity instanceof Villager) {
                 Villager villager = (Villager) entity;
-
-                // Store original trades
-                List<MerchantRecipe> originalRecipes = new ArrayList<>(villager.getRecipes());
-                playerOriginalTrades.put(villager, originalRecipes);
-
-                // Create new cheap trades
-                List<MerchantRecipe> cheapRecipes = new ArrayList<>();
-                for (MerchantRecipe original : originalRecipes) {
-                    MerchantRecipe cheapRecipe = new MerchantRecipe(original.getResult(), original.getMaxUses());
-                    cheapRecipe.addIngredient(new ItemStack(Material.EMERALD, 1)); // Everything costs 1 emerald
-                    cheapRecipes.add(cheapRecipe);
-                }
-
-                villager.setRecipes(cheapRecipes);
+                applyCheapTradesToVillager(villager, playerOriginalTrades);
             }
         }
 
@@ -170,13 +164,29 @@ public class RichesMythAbilities implements Listener {
             public void run() {
                 restoreOriginalTrades(player);
                 cheapTradeTasks.remove(player.getUniqueId());
-                player.sendMessage("§eVillager trades return to normal...");
+                player.sendMessage("§eVillager trades return to normal");
             }
         }.runTaskLater(plugin, 1200); // 1 minute
 
         cheapTradeTasks.put(player.getUniqueId(), tradeTask);
 
         player.sendMessage("§6All villager trades now cost only 1 emerald!");
+    }
+
+    private void applyCheapTradesToVillager(Villager villager, Map<Villager, List<MerchantRecipe>> playerOriginalTrades) {
+        // Store original trades
+        List<MerchantRecipe> originalRecipes = new ArrayList<>(villager.getRecipes());
+        playerOriginalTrades.put(villager, originalRecipes);
+
+        // Create new cheap trades
+        List<MerchantRecipe> cheapRecipes = new ArrayList<>();
+        for (MerchantRecipe original : originalRecipes) {
+            MerchantRecipe cheapRecipe = new MerchantRecipe(original.getResult(), original.getMaxUses());
+            cheapRecipe.addIngredient(new ItemStack(Material.EMERALD, 1)); // Everything costs 1 emerald
+            cheapRecipes.add(cheapRecipe);
+        }
+
+        villager.setRecipes(cheapRecipes);
     }
 
     private void restoreOriginalTrades(Player player) {
@@ -191,6 +201,56 @@ public class RichesMythAbilities implements Listener {
                 }
             }
             originalTrades.remove(player.getUniqueId());
+        }
+    }
+
+    private Player getPlayerWithCheapTradesActive(Villager villager) {
+        // Check which player has cheap trades active and this villager is affected
+        for (Map.Entry<UUID, Map<Villager, List<MerchantRecipe>>> entry : originalTrades.entrySet()) {
+            if (entry.getValue().containsKey(villager)) {
+                return plugin.getServer().getPlayer(entry.getKey());
+            }
+        }
+        return null;
+    }
+
+    @EventHandler
+    public void onVillagerAcquireTrade(VillagerAcquireTradeEvent event) {
+        Villager villager = (Villager) event.getEntity();
+
+        // Check if this villager is affected by any player's cheap trades ability
+        Player affectedPlayer = getPlayerWithCheapTradesActive(villager);
+
+        if (affectedPlayer != null && cheapTradeTasks.containsKey(affectedPlayer.getUniqueId())) {
+            // Get the player's original trades map
+            Map<Villager, List<MerchantRecipe>> playerOriginalTrades = originalTrades.get(affectedPlayer.getUniqueId());
+
+            // Update the original trades with the new recipe
+            if (playerOriginalTrades.containsKey(villager)) {
+                playerOriginalTrades.get(villager).add(event.getRecipe());
+            } else {
+                List<MerchantRecipe> newOriginalList = new ArrayList<>(villager.getRecipes());
+                newOriginalList.add(event.getRecipe());
+                playerOriginalTrades.put(villager, newOriginalList);
+            }
+
+            // Apply cheap version of the new trade
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    // Create cheap version of the new recipe
+                    MerchantRecipe cheapRecipe = new MerchantRecipe(event.getRecipe().getResult(), event.getRecipe().getMaxUses());
+                    cheapRecipe.addIngredient(new ItemStack(Material.EMERALD, 1));
+
+                    // Add the cheap recipe to the villager's current recipes
+                    List<MerchantRecipe> currentRecipes = new ArrayList<>(villager.getRecipes());
+                    // Replace the last recipe (the new one) with the cheap version
+                    if (!currentRecipes.isEmpty()) {
+                        currentRecipes.set(currentRecipes.size() - 1, cheapRecipe);
+                        villager.setRecipes(currentRecipes);
+                    }
+                }
+            }.runTaskLater(plugin, 1); // Run next tick to ensure the recipe is properly added first
         }
     }
 
@@ -212,9 +272,13 @@ public class RichesMythAbilities implements Listener {
         }
 
         if (owner != null) {
-            // Cancel targeting if the target is trusted
-            if (plugin.getTrustManager().isTrusted(owner, target)) {
+            // Cancel targeting if the target is trusted or is the owner
+            if (plugin.getTrustManager().isTrusted(owner, target) || target.equals(owner)) {
                 event.setCancelled(true);
+            }
+            // If not trusted, make sure the golem can attack
+            else {
+                golem.setAggressive(true);
             }
         }
     }

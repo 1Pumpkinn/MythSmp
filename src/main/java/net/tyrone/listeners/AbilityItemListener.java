@@ -66,19 +66,19 @@ public class AbilityItemListener implements Listener {
         switch (mythType) {
             case WIND:
                 return item.getType() == Material.FEATHER &&
-                        displayName.equals("§bWind Powers");
+                        displayName.equals("§bWind Myth");
             case LIGHTNING:
                 return item.getType() == Material.BLAZE_ROD &&
-                        displayName.equals("§eLightning Staff");
+                        displayName.equals("§eLightning Myth");
             case FIRE:
                 return item.getType() == Material.BLAZE_POWDER &&
-                        displayName.equals("§cFire Essence");
+                        displayName.equals("§cFire Myth");
             case EARTH:
                 return item.getType() == Material.COBBLESTONE &&
-                        displayName.equals("§6Earth Stone");
+                        displayName.equals("§6Earth Myth");
             case RICHES:
                 return item.getType() == Material.GOLD_INGOT &&
-                        displayName.equals("§dGolden Scepter");
+                        displayName.equals("§Riches Myth");
             default:
                 return false;
         }

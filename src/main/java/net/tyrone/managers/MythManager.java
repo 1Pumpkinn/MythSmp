@@ -30,7 +30,9 @@ public class MythManager {
 
     public void removePlayerMyth(Player player) {
         playerMyths.remove(player.getUniqueId());
-        // Clear all cooldowns when removing myth
-        plugin.getCooldownManager().clearAllCooldowns(player);
+    }
+
+    public void clearAllMyths() {
+        playerMyths.clear();
     }
 }

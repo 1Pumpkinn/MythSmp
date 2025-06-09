@@ -79,8 +79,6 @@ public class EarthMythAbilities implements Listener {
                         if (!plugin.getTrustManager().isTrusted(player, target)) {
                             // Deal 2 hearts (4 damage)
                             target.damage(4.0, player);
-                            target.sendMessage("§6" + player.getName() + "'s rock hits you!");
-                            player.sendMessage("§6Your rock hits " + target.getName() + "!");
 
                             // Effects
                             target.getWorld().spawnParticle(Particle.BLOCK, target.getLocation(), 20,
@@ -100,7 +98,6 @@ public class EarthMythAbilities implements Listener {
             }
         }.runTaskTimer(plugin, 0, 1);
 
-        player.sendMessage("§6You hurl a massive rock!");
     }
 
     public void poisonAura(Player player) {
@@ -128,7 +125,6 @@ public class EarthMythAbilities implements Listener {
                 if (ticks >= 600) { // 30 seconds
                     this.cancel();
                     poisonAuraTasks.remove(player.getUniqueId());
-                    player.sendMessage("§eYour poison aura dissipates...");
                     return;
                 }
 
@@ -147,7 +143,6 @@ public class EarthMythAbilities implements Listener {
                             if (!plugin.getTrustManager().isTrusted(player, target)) {
                                 // Apply poison effect (level 2 for 3 seconds)
                                 target.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 60, 1));
-                                target.sendMessage("§2" + player.getName() + "'s poison aura affects you!");
                             }
                         }
                     }
@@ -158,6 +153,5 @@ public class EarthMythAbilities implements Listener {
         }.runTaskTimer(plugin, 0, 1);
 
         poisonAuraTasks.put(player.getUniqueId(), auraTask);
-        player.sendMessage("§2You emanate a toxic poison aura!");
     }
 }
